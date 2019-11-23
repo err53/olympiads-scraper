@@ -1,16 +1,18 @@
 const puppeteer = require("puppeteer");
 const readlineSync = require("readline-sync");
 
-const promptUser = new Promise(resolve => {
-  console.log("Welcome to the Olympiads Web Scraper!");
-  var email = readlineSync.question("Email: ");
-  var pass = readlineSync.question("Pass: ", {
-    hideEchoBack: true
+const promptUser = () => {
+  return new Promise(resolve => {
+    console.log("Welcome to the Olympiads Web Scraper!");
+    var email = readlineSync.question("Email: ");
+    var pass = readlineSync.question("Pass: ", {
+      hideEchoBack: true
+    });
+    resolve([email, pass]);
   });
-  resolve([email, pass]);
-});
+};
 
-async () => {
+(async () => {
   const [email, pass] = await promptUser();
   const browser = await puppeteer.launch();
   const page = await browser.newPage();
@@ -33,4 +35,4 @@ async () => {
   await page.screenshot({ path: "./logged_in.png" });
 
   await browser.close();
-};
+})();
