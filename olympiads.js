@@ -2,14 +2,28 @@ const puppeteer = require("puppeteer");
 const readlineSync = require("readline-sync");
 
 const promptUser = () => {
-  return new Promise(resolve => {
-    console.log("Welcome to the Olympiads Web Scraper!");
-    var email = readlineSync.question("Email: ");
-    var pass = readlineSync.question("Pass: ", {
-      hideEchoBack: true
-    });
-    resolve([email, pass]);
+  console.log("Welcome to the Olympiads Web Scraper!");
+  var email = readlineSync.question("Email: ");
+  var pass = readlineSync.question("Pass: ", {
+    hideEchoBack: true
   });
+  return [email, pass];
+};
+
+const findByLink = async (page, linkString) => {
+  const links = await page.$$("a");
+  for (var i = 0; i < links.length; i++) {
+    let valueHandle = await links[i].getProperty("innerText");
+    let linkText = await valueHandle.jsonValue();
+    const text = getText(linkText);
+    if (linkString == text) {
+      console.log(linkString);
+      console.log(text);
+      console.log("Found");
+      return links[i];
+    }
+  }
+  return null;
 };
 
 (async () => {
