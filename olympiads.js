@@ -23,10 +23,10 @@ const promptUser = () => {
 
   page.once("load", () => console.log("Page loaded!"));
 
-  await page.screenshot({ path: "./logged_in.png" });
+  await page.screenshot({ path: "./home.png" });
 
-  await page.type('input[type="email"]', email, { delay: 100 });
-  await page.type('input[type="password"]', pass, { delay: 100 });
+  await page.type('input[name="email"]', email, { delay: 100 });
+  await page.type('input[name="password"]', pass, { delay: 100 });
   await Promise.all([
     page.click('input[type="submit"]'),
     page.waitForNavigation({ waitUntil: "networkidle0" })
