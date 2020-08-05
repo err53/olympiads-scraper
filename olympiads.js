@@ -3,6 +3,9 @@ const puppeteer = require("puppeteer");
 const https = require("https");
 const url = require("url");
 const fs = require("fs");
+const util = require("util");
+
+const mkdir = util.promisify(fs.mkdir);
 
 (async () => {
   // Get login from user
@@ -45,13 +48,13 @@ const fs = require("fs");
   // Delete linkback to olympiads.ca homepage
   items.pop();
 
-  items.forEach((link) => {
+  await Promise.all(
+    items.map(async (link) => {
     // Parse URL
     const queryObject = url.parse(link, true).query;
 
     // Create directory requested
-    fs.mkdir(`${PREFIX}${queryObject.subject}`, { recursive: true }, (err) => {
-      if (err) throw err;
+      await mkdir(`${PREFIX}${queryObject.subject}`, { recursive: true });
 
       // Create Filestream
       const file = fs.createWriteStream(
@@ -64,8 +67,8 @@ const fs = require("fs");
       https.get(link, (res) => {
         res.pipe(file);
       });
-    });
-  });
+    })
+  );
 
   // Exit
   await browser.close();
