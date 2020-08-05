@@ -1,0 +1,32 @@
+{
+  "name": "olympiads-scraper",
+  "version": "1.0.0",
+  "description": "A tool to download homework from Olympiads",
+  "main": "olympiads.js",
+  "scripts": {
+    "start": "node .",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jhthenerd/olympiads-scraper.git"
+  },
+  "keywords": [
+    "scraper",
+    "olympiads"
+  ],
+  "author": "Jason Huang",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/jhthenerd/olympiads-scraper/issues"
+  },
+  "homepage": "https://github.com/jhthenerd/olympiads-scraper#readme",
+  "dependencies": {
+    "dotenv": "^8.2.0",
+    "puppeteer": "^5.2.1"
+  },
+  "devDependencies": {
+    "eslint": "^7.6.0",
+    "eslint-config-prettier": "^6.11.0"
+  }
+}

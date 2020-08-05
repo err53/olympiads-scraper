@@ -1,52 +1,72 @@
+require("dotenv").config();
 const puppeteer = require("puppeteer");
-const readlineSync = require("readline-sync");
-
-const promptUser = () => {
-  console.log("Welcome to the Olympiads Web Scraper!");
-  var email = readlineSync.question("Email: ");
-  var pass = readlineSync.question("Pass: ", {
-    hideEchoBack: true
-  });
-  return [email, pass];
-};
-
-const findByLink = async (page, linkString) => {
-  const links = await page.$$("a");
-  for (var i = 0; i < links.length; i++) {
-    let valueHandle = await links[i].getProperty("innerText");
-    let linkText = await valueHandle.jsonValue();
-    const text = getText(linkText);
-    if (linkString == text) {
-      console.log(linkString);
-      console.log(text);
-      console.log("Found");
-      return links[i];
-    }
-  }
-  return null;
-};
+const https = require("https");
+const url = require("url");
+const fs = require("fs");
 
 (async () => {
-  const [email, pass] = await promptUser();
+  // Get login from user
+  const { EMAIL, PASS, PREFIX } = process.env;
+
+  // Start Puppeteer
   const browser = await puppeteer.launch();
   const page = await browser.newPage();
 
+  // Navigate to sign-in page
   await page.goto("https://olympiads.ca/sign-in/", {
-    waitUntil: "networkidle0"
+    waitUntil: "networkidle0",
   });
 
   page.once("load", () => console.log("Page loaded!"));
 
-  await page.screenshot({ path: "./home.png" });
+  // await page.screenshot({ path: "./home.png" });
 
-  await page.type('input[name="email"]', email, { delay: 100 });
-  await page.type('input[name="password"]', pass, { delay: 100 });
+  // Input Credentials
+  await page.type('input[name="email"]', EMAIL, { delay: 100 });
+  await page.type('input[name="password"]', PASS, { delay: 100 });
   await Promise.all([
     page.click('input[type="submit"]'),
-    page.waitForNavigation({ waitUntil: "networkidle0" })
+    page.waitForNavigation({ waitUntil: "networkidle0" }),
   ]);
 
-  await page.screenshot({ path: "./logged_in.png" });
+  // await page.screenshot({ path: "./logged_in.png" });
 
+  console.log(`Logged into ${EMAIL}`);
+  // Grab links
+
+  const divElement = await page.$(".margin15");
+  const aElements = await divElement.$$("a");
+  const items = await Promise.all(
+    aElements.map(async (element) => {
+      return await (await element.getProperty("href")).jsonValue();
+    })
+  );
+
+  // Delete linkback to olympiads.ca homepage
+  items.pop();
+
+  items.forEach((link) => {
+    // Parse URL
+    const queryObject = url.parse(link, true).query;
+
+    // Create directory requested
+    fs.mkdir(`${PREFIX}${queryObject.subject}`, { recursive: true }, (err) => {
+      if (err) throw err;
+
+      // Create Filestream
+      const file = fs.createWriteStream(
+        `${PREFIX}${queryObject.subject}/${queryObject.file}`
+      );
+
+      console.log(`Downloading ${file.path}`);
+
+      // Download File
+      https.get(link, (res) => {
+        res.pipe(file);
+      });
+    });
+  });
+
+  // Exit
   await browser.close();
 })();
