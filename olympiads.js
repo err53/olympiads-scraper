@@ -12,64 +12,94 @@ const mkdir = util.promisify(fs.mkdir);
   const { EMAIL, PASS, PREFIX } = process.env;
 
   // Start Puppeteer
-  const browser = await puppeteer.launch();
-  const page = await browser.newPage();
+  let browser, page;
+  try {
+    browser = await puppeteer.launch();
+    page = await browser.newPage();
+  } catch (err) {
+    console.error(err);
+    console.error("Unable to launch browser. Aborting...");
+    return;
+  }
 
   // Navigate to sign-in page
-  await page.goto("https://olympiads.ca/sign-in/", {
-    waitUntil: "networkidle0",
-  });
+  try {
+    await page.goto("https://olympiads.ca/sign-in/", {
+      waitUntil: "networkidle0",
+    });
+  } catch (err) {
+    console.error(err);
+    console.error("Unable to navigate to the sign-in page. Aborting...");
+    return;
+  }
 
+  // Wait for load
   page.once("load", () => console.log("Page loaded!"));
 
-  // await page.screenshot({ path: "./home.png" });
-
   // Input Credentials
-  await page.type('input[name="email"]', EMAIL, { delay: 100 });
-  await page.type('input[name="password"]', PASS, { delay: 100 });
-  await Promise.all([
-    page.click('input[type="submit"]'),
-    page.waitForNavigation({ waitUntil: "networkidle0" }),
-  ]);
-
-  // await page.screenshot({ path: "./logged_in.png" });
+  try {
+    await page.type('input[name="email"]', EMAIL, { delay: 100 });
+    await page.type('input[name="password"]', PASS, { delay: 100 });
+    await Promise.all([
+      page.click('input[type="submit"]'),
+      page.waitForNavigation({ waitUntil: "networkidle0" }),
+    ]);
+  } catch (err) {
+    console.error(err);
+    console.error("Unable to sign into the homework section. Aborting...");
+    return;
+  }
 
   console.log(`Logged into ${EMAIL}`);
   // Grab links
-
-  const divElement = await page.$(".margin15");
-  const aElements = await divElement.$$("a");
-  const items = await Promise.all(
-    aElements.map(async (element) => {
-      return await (await element.getProperty("href")).jsonValue();
-    })
-  );
-
-  // Delete linkback to olympiads.ca homepage
-  items.pop();
+  let aElements;
+  try {
+    const divElement = await page.$(".margin15");
+    aElements = await divElement.$$("a");
+  } catch (err) {
+    console.error(err);
+    console.error("Cannot find links! Aborting...");
+    return;
+  }
 
   await Promise.all(
-    items.map(async (link) => {
-    // Parse URL
-    const queryObject = url.parse(link, true).query;
+    aElements.map(async (element) => {
+      const link = await (await element.getProperty("href")).jsonValue();
+      console.log(`Found link: ${link}`);
+      // Parse URL
+      const queryObject = url.parse(link, true).query;
 
-    // Create directory requested
-      await mkdir(`${PREFIX}${queryObject.subject}`, { recursive: true });
+      // Filter linkbacks to olympiads.ca homepage
+      if (link === "https://www.olympiads.ca/") return;
 
-      // Create Filestream
-      const file = fs.createWriteStream(
-        `${PREFIX}${queryObject.subject}/${queryObject.file}`
-      );
+      try {
+        // Create directory requested
+        await mkdir(`${PREFIX}${queryObject.subject}`, { recursive: true });
 
-      console.log(`Downloading ${file.path}`);
+        // Create Filestream
+        const file = fs.createWriteStream(
+          `${PREFIX}${queryObject.subject}/${queryObject.file}`
+        );
 
-      // Download File
-      https.get(link, (res) => {
-        res.pipe(file);
-      });
+        console.log(`Downloading ${file.path}`);
+
+        // Download File
+        https.get(link, (res) => {
+          res.pipe(file);
+        });
+      } catch (err) {
+        console.error(err);
+        console.error(`Unable to download ${link}!`);
+      }
     })
   );
 
   // Exit
-  await browser.close();
+  try {
+    await browser.close();
+  } catch (err) {
+    console.error(err);
+    console.error("Unable to cleanly close browser! Aborting...");
+    return;
+  }
 })();
